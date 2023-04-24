@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Get, Delete, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -11,6 +11,7 @@ import { ActionRecordDTO } from './dto/action-record.dto';
 import { ActionsFilterDTO } from './dto/actions-filter.dto';
 import { Action } from './action.entity';
 import { ActionsRemoveDTO } from './dto/actions-remove.dto';
+import { AdminGuard } from 'src/auth/admin.guard';
 
 @Controller('actions')
 @ApiTags('actions')
@@ -27,6 +28,7 @@ export class ActionsController {
   }
 
   @Get()
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOkResponse({ type: [Action] })
   @ApiOperation({
@@ -38,6 +40,7 @@ export class ActionsController {
   }
 
   @Delete()
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOkResponse({ type: undefined })
   @ApiOperation({ summary: 'Remove user-performed IU actions' })

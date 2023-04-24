@@ -7,6 +7,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EnvConfigValidationSchema } from './env-config.schema';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PGDriverOptions } from './constants';
+import { APP_GUARD } from '@nestjs/core';
+import { JWTGuard } from './auth/jwt.guard';
 
 @Module({
   imports: [
@@ -23,6 +25,12 @@ import { PGDriverOptions } from './constants';
       inject: [ConfigService],
       useFactory: PGDriverOptions,
     }),
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JWTGuard,
+    },
   ],
 })
 export class AppModule {}

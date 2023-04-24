@@ -14,6 +14,7 @@ import {
   FileTypeValidator,
   Delete,
   InternalServerErrorException,
+  UseGuards,
 } from '@nestjs/common';
 import { Public } from './public.decorator';
 import { UserRegisterDTO } from './dto/user-register.dto';
@@ -36,6 +37,7 @@ import { PassChangeDTO } from './dto/pass-change.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { AvatarUploadDTO } from './dto/avatar-upload.dto';
+import { AdminGuard } from './admin.guard';
 
 @Controller('auth')
 @ApiTags('auth')
@@ -59,6 +61,7 @@ export class AuthController {
   }
 
   @Get('/users')
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOkResponse({ type: [User] })
   @ApiOperation({
