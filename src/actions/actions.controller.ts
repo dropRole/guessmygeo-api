@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Get, Delete, Query } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -33,7 +33,9 @@ export class ActionsController {
     summary:
       'Select arbitrary number of actions, maximally 100, of the optionally passed user',
   })
-  selectActions(@Body() actionsFilterDTO: ActionsFilterDTO): Promise<Action[]> {
+  selectActions(
+    @Query() actionsFilterDTO: ActionsFilterDTO,
+  ): Promise<Action[]> {
     return;
   }
 
