@@ -39,3 +39,6 @@ migrations
 
 # uploaded static assets dir
 uploads
+
+# environment configuration files
+.env.stage.*
