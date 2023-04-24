@@ -1,4 +1,5 @@
 import { ConfigService } from '@nestjs/config';
+import { JwtModuleOptions } from '@nestjs/jwt';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 
 export const PGDriverOptions: (
@@ -12,4 +13,13 @@ export const PGDriverOptions: (
   password: configService.get('PG_PASS'),
   autoLoadEntities: true,
   synchronize: process.env.STAGE === 'dev' ? true : false,
+});
+
+export const JWTOptions: (
+  configService: ConfigService,
+) => Promise<JwtModuleOptions> = async (configService: ConfigService) => ({
+  secret: configService.get('JWT_SECRET'),
+  signOptions: {
+    expiresIn: configService.get('JWT_EXPIRATION'),
+  },
 });

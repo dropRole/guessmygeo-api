@@ -34,10 +34,13 @@ import { LocationEditDTO } from './dto/location-edit.dto';
 import { Location } from './location.entity';
 import { Guess } from './guess.entity';
 import { GuessesFilterDTO } from './dto/guesses-filter.dto';
+import { LocationsService } from './locations.service';
 
 @Controller('locations')
 @ApiTags('locations')
 export class LocationsController {
+  constructor(private locationsService: LocationsService) {}
+
   @Post()
   @UseInterceptors(
     FileInterceptor('image', {
@@ -78,7 +81,11 @@ export class LocationsController {
     )
     image: Express.Multer.File,
   ): Promise<void> {
-    return;
+    return this.locationsService.createLocation(
+      user,
+      locationCreateDTO,
+      image.filename,
+    );
   }
 
   @Post('/guess/:id')
@@ -93,7 +100,7 @@ export class LocationsController {
     @Body() locationGuessDTO: LocationGuessDTO,
     @Param('id') id: string,
   ): Promise<void> {
-    return;
+    return this.locationsService.guessLocation(user, locationGuessDTO, id);
   }
 
   @Get()
@@ -106,7 +113,7 @@ export class LocationsController {
   selectLocations(
     @Query() locationsFilterDTO: LocationsFilterDTO,
   ): Promise<Location[]> {
-    return;
+    return this.locationsService.selectLocations(locationsFilterDTO);
   }
 
   @Get('/rand')
@@ -116,7 +123,7 @@ export class LocationsController {
     summary: 'Select a random geolocation',
   })
   selectRandLocation(): Promise<Location> {
-    return;
+    return this.locationsService.selectRandLocation();
   }
 
   @Get('/guesses')
@@ -125,7 +132,7 @@ export class LocationsController {
     summary: 'Select limited amount of geolocation guesses records',
   })
   selectGuesses(@Query() guessesFilterDTO: GuessesFilterDTO): Promise<Guess[]> {
-    return;
+    return this.locationsService.selectGuesses(guessesFilterDTO);
   }
 
   @Get('/guesses/me')
@@ -139,7 +146,7 @@ export class LocationsController {
     @GetUser() user: User,
     @Query() guessesFilterDTO: GuessesFilterDTO,
   ): Promise<Guess[]> {
-    return;
+    return this.locationsService.selectPersonalGuesses(user, guessesFilterDTO);
   }
 
   @Patch('/:id')
@@ -186,7 +193,12 @@ export class LocationsController {
     )
     image: Express.Multer.File,
   ): Promise<void> {
-    return;
+    return this.locationsService.editLocation(
+      user,
+      id,
+      locationEditDTO,
+      image.filename,
+    );
   }
 
   @Delete('/:id')
@@ -199,6 +211,6 @@ export class LocationsController {
     @GetUser() user: User,
     @Param('id') id: string,
   ): Promise<void> {
-    return;
+    return this.locationsService.removeLocation(user, id);
   }
 }

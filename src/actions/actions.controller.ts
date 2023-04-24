@@ -1,4 +1,12 @@
-import { Controller, Post, Body, Get, Delete, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Delete,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -11,10 +19,14 @@ import { ActionRecordDTO } from './dto/action-record.dto';
 import { ActionsFilterDTO } from './dto/actions-filter.dto';
 import { Action } from './action.entity';
 import { ActionsRemoveDTO } from './dto/actions-remove.dto';
+import { AdminGuard } from 'src/auth/admin.guard';
+import { ActionsService } from './actions.service';
 
 @Controller('actions')
 @ApiTags('actions')
 export class ActionsController {
+  constructor(private actionsService: ActionsService) {}
+
   @Post()
   @ApiBearerAuth()
   @ApiOkResponse({ type: undefined })
@@ -23,10 +35,11 @@ export class ActionsController {
     @GetUser() user: User,
     @Body() actionRecordDTO: ActionRecordDTO,
   ): Promise<void> {
-    return;
+    return this.actionsService.recordAction(user, actionRecordDTO);
   }
 
   @Get()
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOkResponse({ type: [Action] })
   @ApiOperation({
@@ -36,14 +49,15 @@ export class ActionsController {
   selectActions(
     @Query() actionsFilterDTO: ActionsFilterDTO,
   ): Promise<Action[]> {
-    return;
+    return this.actionsService.selectActions(actionsFilterDTO);
   }
 
   @Delete()
+  @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOkResponse({ type: undefined })
   @ApiOperation({ summary: 'Remove user-performed IU actions' })
   removeActions(@Body() actionsRemoveDTO: ActionsRemoveDTO): Promise<void> {
-    return;
+    return this.actionsService.removeActions(actionsRemoveDTO);
   }
 }
