@@ -8,6 +8,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JWTOptions } from 'src/constants';
 import { JWTStrategy } from './jwt.strategy';
+import { LoggerModule } from 'src/logger/logger.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { JWTStrategy } from './jwt.strategy';
       useFactory: JWTOptions,
     }),
     ConfigModule,
+    LoggerModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JWTStrategy],

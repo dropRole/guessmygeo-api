@@ -38,16 +38,19 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { AvatarUploadDTO } from './dto/avatar-upload.dto';
 import { AdminGuard } from './admin.guard';
+import { AuthService } from './auth.service';
 
 @Controller('auth')
 @ApiTags('auth')
 export class AuthController {
+  constructor(private authService: AuthService) {}
+
   @Post('/register')
   @Public()
   @ApiOkResponse({ type: undefined })
   @ApiOperation({ summary: 'Register a user record' })
   register(@Body() userRegisterDTO: UserRegisterDTO): Promise<void> {
-    return;
+    return this.authService.register(userRegisterDTO);
   }
 
   @Post('/login')
@@ -57,7 +60,7 @@ export class AuthController {
   login(
     @Body() authCredentialsDTO: AuthCredentialsDTO,
   ): Promise<{ jwt: string }> {
-    return;
+    return this.authService.login(authCredentialsDTO);
   }
 
   @Get('/users')
@@ -68,7 +71,7 @@ export class AuthController {
     summary: 'Select users according to the provided search string',
   })
   selectUsers(@Query('search') search: string): Promise<User[]> {
-    return;
+    return this.authService.selectUsers(search);
   }
 
   @Get('/me/info')
@@ -111,7 +114,7 @@ export class AuthController {
     @GetUser() user: User,
     @Body() infoEditDTO: InfoEditDTO,
   ): Promise<{ jwt: string }> {
-    return;
+    return this.authService.editInfo(user, infoEditDTO);
   }
 
   @Patch('/me/pass')
@@ -124,7 +127,7 @@ export class AuthController {
     @GetUser() user: User,
     @Body() passChangeDTO: PassChangeDTO,
   ): Promise<void> {
-    return;
+    return this.authService.changePass(user, passChangeDTO);
   }
 
   @Patch('/me/avatar')
@@ -170,7 +173,7 @@ export class AuthController {
     avatar: Express.Multer.File,
     @GetUser() user: User,
   ): Promise<{ filename: string }> {
-    return;
+    return this.authService.uploadAvatar(user, avatar.filename);
   }
 
   @Delete('/me/avatar')
@@ -180,6 +183,6 @@ export class AuthController {
     summary: 'Remove the users avatar from the server',
   })
   removeAvatar(@GetUser() user: User): Promise<void> {
-    return;
+    return this.authService.removeAvatar(user);
   }
 }
