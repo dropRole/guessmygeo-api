@@ -5,18 +5,18 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from 'src/auth/user.entity';
+import { User } from '../auth/user.entity';
 import { Repository, Like } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { UserRegisterDTO } from 'src/auth/dto/user-register.dto';
+import { UserRegisterDTO } from '../auth/dto/user-register.dto';
 import * as bcrypt from 'bcrypt';
-import { JWTPayload } from 'src/auth/jwt-payload.interface';
-import { AuthCredentialsDTO } from 'src/auth/dto/auth-credentials.dto';
-import { InfoEditDTO } from 'src/auth/dto/info-edit.dto';
-import { PassChangeDTO } from 'src/auth/dto/pass-change.dto';
+import { JWTPayload } from '../auth/jwt-payload.interface';
+import { AuthCredentialsDTO } from '../auth/dto/auth-credentials.dto';
+import { InfoEditDTO } from '../auth/dto/info-edit.dto';
+import { PassChangeDTO } from '../auth/dto/pass-change.dto';
 import { unlink } from 'fs';
-import { UtilityLoggerService } from 'src/logger/logger.service';
+import { UtilityLoggerService } from '../logger/logger.service';
 
 @Injectable()
 export class AuthService {

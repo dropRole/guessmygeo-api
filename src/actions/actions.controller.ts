@@ -13,13 +13,13 @@ import {
   ApiOperation,
   ApiOkResponse,
 } from '@nestjs/swagger';
-import { GetUser } from 'src/auth/get-user.decorator';
-import { User } from 'src/auth/user.entity';
+import { GetUser } from '../auth/get-user.decorator';
+import { User } from '../auth/user.entity';
 import { ActionRecordDTO } from './dto/action-record.dto';
 import { ActionsFilterDTO } from './dto/actions-filter.dto';
 import { Action } from './action.entity';
 import { ActionsRemoveDTO } from './dto/actions-remove.dto';
-import { AdminGuard } from 'src/auth/admin.guard';
+import { AdminGuard } from '../auth/admin.guard';
 import { ActionsService } from './actions.service';
 
 @Controller('actions')
