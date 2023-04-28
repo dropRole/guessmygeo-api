@@ -24,11 +24,11 @@ import {
   ApiBody,
   OmitType,
 } from '@nestjs/swagger';
-import { GetUser } from 'src/auth/get-user.decorator';
-import { User } from 'src/auth/user.entity';
+import { GetUser } from '../auth/get-user.decorator';
+import { User } from '../auth/user.entity';
 import { LocationCreateDTO } from './dto/location-create.dto';
 import { LocationGuessDTO } from './dto/location-guess.dto';
-import { Public } from 'src/auth/public.decorator';
+import { Public } from '../auth/public.decorator';
 import { LocationsFilterDTO } from './dto/locations-filter.dto';
 import { LocationEditDTO } from './dto/location-edit.dto';
 import { Location } from './location.entity';
