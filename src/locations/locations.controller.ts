@@ -12,6 +12,8 @@ import {
   Patch,
   Delete,
   InternalServerErrorException,
+  Header,
+  StreamableFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -35,6 +37,8 @@ import { Location } from './location.entity';
 import { Guess } from './guess.entity';
 import { GuessesFilterDTO } from './dto/guesses-filter.dto';
 import { LocationsService } from './locations.service';
+import { ReadStream, createReadStream } from 'fs';
+import { join } from 'path';
 
 @Controller('locations')
 @ApiTags('locations')
