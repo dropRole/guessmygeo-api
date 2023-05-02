@@ -125,6 +125,26 @@ export class LocationsController {
   selectRandLocation(): Promise<Location> {
     return this.locationsService.selectRandLocation();
   }
+  
+  @Get('/image/:filename')
+  @Header('Content-Type', 'image/png')
+  @Public()
+  @ApiBearerAuth()
+  @ApiOkResponse({ type: StreamableFile })
+  @ApiOperation({
+    summary: 'Stream the subject users avatar',
+  })
+  streamImage(@Param('filename') filename: string): StreamableFile {
+    try {
+      const stream: ReadStream = createReadStream(
+        join(process.cwd(), `uploads/${filename}`),
+      );
+
+      return new StreamableFile(stream);
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
 
   @Get('/guesses')
   @ApiOkResponse({ type: [Guess] })
