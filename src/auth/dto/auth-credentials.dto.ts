@@ -12,7 +12,7 @@ export class AuthCredentialsDTO {
     type: 'string',
     minLength: 8,
     maxLength: 20,
-    pattern: '/((?=.*d)|(?=.*W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/',
+    pattern: '/((?=.*\\d)|(?=.*\\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/',
   })
   @IsString()
   @MinLength(8)
