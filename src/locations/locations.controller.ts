@@ -12,6 +12,8 @@ import {
   Patch,
   Delete,
   InternalServerErrorException,
+  Header,
+  StreamableFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -24,17 +26,19 @@ import {
   ApiBody,
   OmitType,
 } from '@nestjs/swagger';
-import { GetUser } from 'src/auth/get-user.decorator';
-import { User } from 'src/auth/user.entity';
+import { GetUser } from '../auth/get-user.decorator';
+import { User } from '../auth/user.entity';
 import { LocationCreateDTO } from './dto/location-create.dto';
 import { LocationGuessDTO } from './dto/location-guess.dto';
-import { Public } from 'src/auth/public.decorator';
+import { Public } from '../auth/public.decorator';
 import { LocationsFilterDTO } from './dto/locations-filter.dto';
 import { LocationEditDTO } from './dto/location-edit.dto';
 import { Location } from './location.entity';
 import { Guess } from './guess.entity';
 import { GuessesFilterDTO } from './dto/guesses-filter.dto';
 import { LocationsService } from './locations.service';
+import { ReadStream, createReadStream } from 'fs';
+import { join } from 'path';
 
 @Controller('locations')
 @ApiTags('locations')
@@ -124,6 +128,26 @@ export class LocationsController {
   })
   selectRandLocation(): Promise<Location> {
     return this.locationsService.selectRandLocation();
+  }
+  
+  @Get('/image/:filename')
+  @Header('Content-Type', 'image/png')
+  @Public()
+  @ApiBearerAuth()
+  @ApiOkResponse({ type: StreamableFile })
+  @ApiOperation({
+    summary: 'Stream the subject users avatar',
+  })
+  streamImage(@Param('filename') filename: string): StreamableFile {
+    try {
+      const stream: ReadStream = createReadStream(
+        join(process.cwd(), `uploads/${filename}`),
+      );
+
+      return new StreamableFile(stream);
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Get('/guesses')

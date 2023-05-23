@@ -7,10 +7,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Action } from './action.entity';
 import { Repository, Like, DeleteResult } from 'typeorm';
 import { ActionRecordDTO } from './dto/action-record.dto';
-import { User } from 'src/auth/user.entity';
+import { User } from '../auth/user.entity';
 import { ActionsRemoveDTO } from './dto/actions-remove.dto';
 import { ActionsFilterDTO } from './dto/actions-filter.dto';
-import { UtilityLoggerService } from 'src/logger/logger.service';
+import { UtilityLoggerService } from '../logger/logger.service';
 
 @Injectable()
 export class ActionsService {
