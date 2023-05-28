@@ -4,7 +4,6 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsUrl,
   MaxLength,
 } from 'class-validator';
 import { ActionType } from '../enum/action-type.enum';
@@ -42,7 +41,7 @@ export class ActionRecordDTO {
     type: 'string',
     description: 'URL where action was performed',
   })
-  @IsUrl()
+  @IsString()
   @IsNotEmpty()
   url: string;
 }
