@@ -15,6 +15,7 @@ import {
   Delete,
   InternalServerErrorException,
   UseGuards,
+  Param,
 } from '@nestjs/common';
 import { Public } from './public.decorator';
 import { UserRegisterDTO } from './dto/user-register.dto';
@@ -61,6 +62,18 @@ export class AuthController {
     @Body() authCredentialsDTO: AuthCredentialsDTO,
   ): Promise<{ jwt: string }> {
     return this.authService.login(authCredentialsDTO);
+  }
+  
+  @Get('/:username/token/pass-reset')
+  @Public()
+  @ApiOkResponse({ type: Object })
+  @ApiOperation({
+    summary: 'Retrieve users email address along with JWT for pass reset',
+  })
+  signPassResetJWT(
+    @Param('username') username: string,
+  ): Promise<{ email: string; jwt: string }> {
+    return this.authService.signPassResetJWT(username);
   }
 
   @Get('/users')
