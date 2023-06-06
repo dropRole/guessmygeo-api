@@ -5,13 +5,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from './auth/user.entity';
+import { User } from './user.entity';
 import { Repository, Like } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UserRegisterDTO } from './dto/user-register.dto';
 import * as bcrypt from 'bcrypt';
-import { JWTPayload } from './jwt-payload.interface';
+import { JWTPayload } from '../auth/jwt-payload.interface';
 import { AuthCredentialsDTO } from './dto/auth-credentials.dto';
 import { InfoEditDTO } from './dto/info-edit.dto';
 import { PassChangeDTO } from './dto/pass-change.dto';
@@ -94,6 +94,25 @@ export class AuthService {
     throw new UnauthorizedException('Check your credentials.');
   }
 
+  async signPassResetJWT(
+    username: string,
+  ): Promise<{ email: string; jwt: string }> {
+    let user: User;
+
+    try {
+      user = await this.usersRepo.findOne({ where: { username } });
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+
+    // user does not exist
+    if (!user) throw new ConflictException('Provide a valid username.');
+
+    const { jwt } = this.signJWT(username);
+
+    return { email: user.email, jwt };
+  }
+
   async selectUsers(search: string): Promise<User[]> {
     try {
       const users: User[] = await this.usersRepo.find({
@@ -126,8 +145,9 @@ export class AuthService {
     user.name = name;
     user.surname = surname;
     user.email = email;
+
     try {
-      await this.usersRepo.update(oldUser, user);
+      await this.usersRepo.update(oldUser.username, user);
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }
@@ -143,9 +163,11 @@ export class AuthService {
   async changePass(user: User, passChangeDTO: PassChangeDTO): Promise<void> {
     const { pass, newPass } = passChangeDTO;
 
-    // invalid current password
-    if (!(await bcrypt.compare(pass, user.pass)))
-      throw new ConflictException('Invalid current password.');
+    // password reset request
+    if (pass)
+      if (!(await bcrypt.compare(pass, user.pass)))
+        // invalid current password
+        throw new ConflictException('Invalid current password.');
 
     const oldUser: User = structuredClone(user);
 
