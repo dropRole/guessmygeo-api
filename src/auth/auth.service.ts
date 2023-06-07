@@ -169,14 +169,12 @@ export class AuthService {
         // invalid current password
         throw new ConflictException('Invalid current password.');
 
-    const oldUser: User = structuredClone(user);
-
     const hash: string = await bcrypt.hash(newPass, 9);
 
     user.pass = hash;
 
     try {
-      await this.usersRepo.update(oldUser, { pass: hash });
+      await this.usersRepo.update({ username: user.username }, user);
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }
