@@ -107,6 +107,21 @@ export class LocationsService {
     }
   }
 
+  async selectLocation(id: string): Promise<Location> {
+    let location: Location;
+    try {
+      location = await this.locationsRepo.findOne({ where: { id } });
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+
+    // was not found
+    if (!location)
+      throw new NotFoundException(`Location with the id ${id} was not found.`);
+
+    return location;
+  }
+
   async selectRandLocation(): Promise<Location> {
     const query: SelectQueryBuilder<Location> =
       this.locationsRepo.createQueryBuilder('location');
