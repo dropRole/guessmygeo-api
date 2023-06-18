@@ -120,6 +120,14 @@ export class LocationsController {
     return this.locationsService.selectLocations(locationsFilterDTO);
   }
 
+  @Get('/:id')
+  @ApiBearerAuth()
+  @ApiOkResponse({ type: Location })
+  @ApiOperation({ summary: 'Get the location according to the passed id' })
+  selectLocation(@Param('id') id: string): Promise<Location> {
+    return this.locationsService.selectLocation(id);
+  }
+  
   @Get('/rand')
   @ApiBearerAuth()
   @ApiOkResponse({ type: Location })
