@@ -10,12 +10,12 @@ import { Location } from './location.entity';
 import { Repository, SelectQueryBuilder, FindOptionsOrderValue } from 'typeorm';
 import { Guess } from './guess.entity';
 import { LocationCreateDTO } from './dto/location-create.dto';
-import { User } from 'src/auth/user.entity';
+import { User } from '../auth/user.entity';
 import { LocationsFilterDTO } from './dto/locations-filter.dto';
 import { unlink } from 'fs';
 import { LocationGuessDTO } from './dto/location-guess.dto';
 import { LocationEditDTO } from './dto/location-edit.dto';
-import { UtilityLoggerService } from 'src/logger/logger.service';
+import { UtilityLoggerService } from '../logger/logger.service';
 import { GuessesFilterDTO } from './dto/guesses-filter.dto';
 
 @Injectable()
@@ -105,6 +105,21 @@ export class LocationsService {
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }
+  }
+
+  async selectLocation(id: string): Promise<Location> {
+    let location: Location;
+    try {
+      location = await this.locationsRepo.findOne({ where: { id } });
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+
+    // was not found
+    if (!location)
+      throw new NotFoundException(`Location with the id ${id} was not found.`);
+
+    return location;
   }
 
   async selectRandLocation(): Promise<Location> {

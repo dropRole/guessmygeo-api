@@ -32,6 +32,7 @@ export class Guess {
   user: User;
 
   @ManyToOne((_type) => Location, (location) => location.guesses, {
+    eager: true,
     nullable: false,
   })
   @JoinColumn({ name: 'location', referencedColumnName: 'id' })
