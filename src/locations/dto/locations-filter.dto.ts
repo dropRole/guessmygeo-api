@@ -3,7 +3,7 @@ import {
   IsNotEmpty,
   IsNumberString,
   IsOptional,
-  IsUUID,
+  IsString,
 } from 'class-validator';
 
 export class LocationsFilterDTO {
@@ -14,6 +14,6 @@ export class LocationsFilterDTO {
 
   @ApiPropertyOptional({ type: 'string' })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   user: string;
 }
