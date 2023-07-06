@@ -8,7 +8,6 @@ import { ActionsService } from './actions.service';
 import { ActionRecordDTO } from './dto/action-record.dto';
 import { User } from '../auth/user.entity';
 import { ActionsFilterDTO } from './dto/actions-filter.dto';
-import { ActionsRemoveDTO } from './dto/actions-remove.dto';
 import { NotFoundException } from '@nestjs/common';
 
 const moduleMocker: ModuleMocker = new ModuleMocker(global);
@@ -81,34 +80,25 @@ describe('ActionsController', () => {
                   )
                   .slice(0, limit);
               }),
-            removeActions: jest
+            removeAction: jest
               .fn()
-              .mockImplementation((actionsRemoveDTO: ActionsRemoveDTO) => {
-                const { actions: actionIds } = actionsRemoveDTO;
+              .mockImplementation((id: string): boolean => {
+                let removed = false;
 
-                const ids: [] = JSON.parse(actionIds);
+                if (actions.find((action) => action.id === id)) {
+                  actions.splice(
+                    actions.indexOf(actions.find((action) => action.id === id)),
+                    1,
+                  );
 
-                let deletion = false;
-
-                ids.forEach((id) => {
-                  // action found
-                  if (actions.find((action) => action.id === id)) {
-                    actions.splice(
-                      actions.indexOf(
-                        actions.find((action) => action.id === id),
-                      ),
-                      1,
-                    );
-
-                    deletion = true;
-                  }
-                });
+                  removed = true;
+                }
 
                 // nought deletions made
-                if (!deletion)
-                  throw new NotFoundException(
-                    `Non among the actions [${actionIds}] were deleted.`,
-                  );
+                if (!removed)
+                  throw new NotFoundException(`Action ${id} was not found.`);
+
+                return removed;
               }),
           };
 
@@ -152,23 +142,16 @@ describe('ActionsController', () => {
     });
   });
 
-  describe('removeActions', () => {
-    const actionsRemoveDTO: ActionsRemoveDTO = new ActionsRemoveDTO();
-    actionsRemoveDTO.actions = `["${actions[0].id}", "${actions[1].id}"]`;
-
-    it('should be void', () => {
-      expect(controller.removeActions(actionsRemoveDTO)).toBeUndefined();
+  describe('removeAction', () => {
+    it('should be truthy', () => {
+      expect(controller.removeAction(actions[0].id)).toBeTruthy();
     });
 
     it('should throw a NotFoundException', () => {
-      actionsRemoveDTO.actions = `["${actions[0].id.substring(
-        0,
-        actions[0].id.length - 1,
-      )}", 
-      "${actions[1].id.substring(0, actions[1].id.length - 1)}"]`;
+      const id: string = actions[1].id.substring(0, actions[1].id.length - 1);
 
-      expect(() => controller.removeActions(actionsRemoveDTO)).toThrow(
-        `Non among the actions [${actionsRemoveDTO.actions}] were deleted.`,
+      expect(() => controller.removeAction(id)).toThrow(
+        `Action ${id} was not found.`,
       );
     });
   });
