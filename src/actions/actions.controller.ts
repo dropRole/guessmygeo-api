@@ -6,6 +6,7 @@ import {
   Delete,
   UseGuards,
   Query,
+  Param,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,7 +19,6 @@ import { User } from '../auth/user.entity';
 import { ActionRecordDTO } from './dto/action-record.dto';
 import { ActionsFilterDTO } from './dto/actions-filter.dto';
 import { Action } from './action.entity';
-import { ActionsRemoveDTO } from './dto/actions-remove.dto';
 import { AdminGuard } from '../auth/admin.guard';
 import { ActionsService } from './actions.service';
 
@@ -52,12 +52,12 @@ export class ActionsController {
     return this.actionsService.selectActions(actionsFilterDTO);
   }
 
-  @Delete()
+  @Delete('/:id')
   @UseGuards(AdminGuard)
   @ApiBearerAuth()
   @ApiOkResponse({ type: undefined })
   @ApiOperation({ summary: 'Remove user-performed IU actions' })
-  removeActions(@Body() actionsRemoveDTO: ActionsRemoveDTO): Promise<void> {
-    return this.actionsService.removeActions(actionsRemoveDTO);
+  removeAction(@Param('id') id: string): Promise<boolean> {
+    return this.actionsService.removeAction(id);
   }
 }
