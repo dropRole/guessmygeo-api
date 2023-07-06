@@ -60,10 +60,10 @@ export class AuthController {
   @ApiOperation({ summary: 'Log in the user and pass the auth token' })
   login(
     @Body() authCredentialsDTO: AuthCredentialsDTO,
-  ): Promise<{ jwt: string }> {
+  ): Promise<{ [key: string]: string }> {
     return this.authService.login(authCredentialsDTO);
   }
-  
+
   @Get('/:username/token/pass-reset')
   @Public()
   @ApiOkResponse({ type: Object })
