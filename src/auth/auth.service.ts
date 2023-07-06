@@ -65,31 +65,29 @@ export class AuthService {
     this.utilityLoggerService.instanceCreationLog(user);
   }
 
-  private signJWT(username: string): { jwt: string } {
+  private signJWT(username: string): string {
     const payload: JWTPayload = { username };
 
-    const jwt: string = this.jwtService.sign(payload);
-
-    return { jwt };
+    return this.jwtService.sign(payload);
   }
 
   async login(
     authCredentialsDTO: AuthCredentialsDTO,
-  ): Promise<{ jwt: string }> {
+  ): Promise<{ [key: string]: string }> {
     const { username, pass } = authCredentialsDTO;
 
     const user: User = await this.usersRepo.findOne({ where: { username } });
 
     // registered user
     if (user && (await bcrypt.compare(pass, user.pass)))
-      return this.signJWT(username);
+      return { jwt: this.signJWT(username) };
 
     // superuser login
     if (
       username === this.configService.get('SUPERUSER') &&
       (await bcrypt.compare(pass, this.configService.get('SUPERUSER_PASS')))
     )
-      return this.signJWT(username);
+      return { jwt: this.signJWT(username), privilege: 'admin' };
 
     throw new UnauthorizedException('Check your credentials.');
   }
@@ -108,9 +106,7 @@ export class AuthService {
     // user does not exist
     if (!user) throw new ConflictException('Provide a valid username.');
 
-    const { jwt } = this.signJWT(username);
-
-    return { email: user.email, jwt };
+    return { email: user.email, jwt: this.signJWT(user.username) };
   }
 
   async selectUsers(search: string): Promise<User[]> {
@@ -157,7 +153,7 @@ export class AuthService {
     // username already in use
     if (exist)
       throw new ConflictException(`Username ${username} is already in use.`);
-    else return this.signJWT(username);
+    else return { jwt: this.signJWT(username) };
   }
 
   async changePass(user: User, passChangeDTO: PassChangeDTO): Promise<void> {
