@@ -8,7 +8,6 @@ import { Action } from './action.entity';
 import { Repository, Like, DeleteResult } from 'typeorm';
 import { ActionRecordDTO } from './dto/action-record.dto';
 import { User } from '../auth/user.entity';
-import { ActionsRemoveDTO } from './dto/actions-remove.dto';
 import { ActionsFilterDTO } from './dto/actions-filter.dto';
 import { UtilityLoggerService } from '../logger/logger.service';
 
@@ -51,7 +50,7 @@ export class ActionsService {
     try {
       const actions: Action[] = await this.actionsRepo.find({
         loadEagerRelations: true,
-        where: { user: Like(`%${search}%`) },
+        where: search ? { user: Like(`%${search}%`) } : {},
         take: limit,
         order: { performedAt: 'DESC' },
       });
@@ -64,17 +63,10 @@ export class ActionsService {
     }
   }
 
-  async removeActions(actionsDeleteDTO: ActionsRemoveDTO): Promise<void> {
-    const { actions } = actionsDeleteDTO;
-
-    const ids: [] = JSON.parse(actions);
-
-    // empty array
-    if (ids.length === 0) return;
-
+  async removeAction(id: string): Promise<boolean> {
     let result: DeleteResult;
     try {
-      result = await this.actionsRepo.delete(ids);
+      result = await this.actionsRepo.delete(id);
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }
@@ -82,7 +74,8 @@ export class ActionsService {
     this.utilityLoggerService.instanceDeletionLog('Action', result.affected);
 
     // nought deleted
-    if (result.affected === 0)
-      throw new NotFoundException(`Non among actions [${ids}] were deleted.`);
+    if (!result.affected) return false;
+
+    return true;
   }
 }
