@@ -9,12 +9,17 @@ import { createReadStream } from 'fs';
 import { randomBytes } from 'crypto';
 import { LocationGuessDTO } from './dto/location-guess.dto';
 import { Location } from './location.entity';
-import { NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  NotFoundException,
+  StreamableFile,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Guess } from './guess.entity';
 import { User } from '../auth/user.entity';
 import { LocationsFilterDTO } from './dto/locations-filter.dto';
 import { GuessesFilterDTO } from './dto/guesses-filter.dto';
 import { LocationEditDTO } from './dto/location-edit.dto';
+import { ReadStream } from 'typeorm/platform/PlatformTools';
 
 const moduleMocker: ModuleMocker = new ModuleMocker(global);
 
@@ -106,6 +111,30 @@ describe('LocationsController', () => {
                     .slice(0, limit);
                 },
               ),
+            selectLocation: jest.fn().mockImplementation((id: string) => {
+              const location: Location | undefined = locations.find(
+                (location) => location.id === id,
+              );
+
+              // location found
+              if (location) return location;
+
+              throw new NotFoundException(`Location ${id} was not found.`);
+            }),
+            guessedLocation: jest
+              .fn()
+              .mockImplementation((user: User, id: string): boolean => {
+                const guess: Guess | undefined = guesses.find(
+                  (guess) => guess.location.id === id,
+                );
+
+                // location guess
+                if (guess)
+                  if (guess.user.username === user.username) return true;
+                  else return false;
+
+                throw new NotFoundException(`Location ${id} was not found.`);
+              }),
             selectRandLocation: jest
               .fn()
               .mockImplementation(
@@ -116,14 +145,26 @@ describe('LocationsController', () => {
                       : Math.floor(Math.random() * locations.length)
                   ] as Location,
               ),
+            streamImage: jest
+              .fn()
+              .mockImplementation((filename: string): StreamableFile => {
+                const stream: ReadStream = createReadStream(filename);
+
+                return new StreamableFile(stream);
+              }),
             selectGuesses: jest
               .fn()
               .mockImplementation(
                 (guessesFilterDTO: GuessesFilterDTO): Guess[] => {
-                  const { limit, id, results } = guessesFilterDTO;
+                  const { limit, user, id, results } = guessesFilterDTO;
 
                   // location not found
-                  if (!locations.find((location) => location.id === id))
+                  if (
+                    !locations.find(
+                      (location) =>
+                        location.id === id && location.user.username === user,
+                    )
+                  )
                     throw new NotFoundException(
                       `Location ${id} was not found.`,
                     );
@@ -134,18 +175,16 @@ describe('LocationsController', () => {
                     .slice(0, limit);
                 },
               ),
-            selectPersonalGuesses: jest
-              .fn()
-              .mockImplementation(
-                (user: User, guessesFilterDTO: GuessesFilterDTO): Guess[] => {
-                  const { limit, results } = guessesFilterDTO;
+            selectGuess: jest.fn().mockImplementation((id: string): Guess => {
+              const guess: Guess | undefined = guesses.find(
+                (guess) => guess.id === id,
+              );
 
-                  return guesses
-                    .filter((guess) => guess.user.username === user.username)
-                    .sort(() => (results ? 0 : 1))
-                    .slice(0, limit);
-                },
-              ),
+              // guess found
+              if (guess) return guess;
+
+              throw new NotFoundException(`Guess ${id} was not found.`);
+            }),
             editLocation: jest
               .fn()
               .mockImplementation(
@@ -262,6 +301,47 @@ describe('LocationsController', () => {
     });
   });
 
+  describe('selectLocation', () => {
+    it('should return a Location instance', () => {
+      expect(controller.selectLocation(locations[0].id)).toMatchObject(
+        new Location(),
+      );
+    });
+
+    it('should throw a NotFoundException', () => {
+      const id: string = locations[0].id.substring(
+        0,
+        locations[0].id.length - 1,
+      );
+
+      expect(() => controller.selectLocation(id)).toThrow(
+        `Location ${id} was not found.`,
+      );
+    });
+  });
+
+  describe('guessedLocation', () => {
+    it('should be truthy', () => {
+      expect(
+        controller.guessedLocation(locations[0].user, locations[0].id),
+      ).toBeTruthy();
+    });
+
+    it('should throw a NotFoundException', () => {
+      expect(() =>
+        controller.guessedLocation(
+          locations[0].user,
+          locations[0].id.substring(0, locations[0].id.length - 1),
+        ),
+      ).toThrow(
+        `Location ${locations[0].id.substring(
+          0,
+          locations[0].id.length - 1,
+        )} was not found.`,
+      );
+    });
+  });
+
   describe('selectRandLocation', () => {
     it('should return a Location instance', () => {
       service.selectRandLocation();
@@ -269,10 +349,19 @@ describe('LocationsController', () => {
     });
   });
 
+  describe('streamImage', () => {
+    it('should return a StreamableFile instance', () => {
+      expect(controller.streamImage(locations[0].image)).toBeInstanceOf(
+        StreamableFile,
+      );
+    });
+  });
+
   describe('selectGuesses', () => {
     const guessesFilterDTO: GuessesFilterDTO = new GuessesFilterDTO();
-    guessesFilterDTO.id = locations[0].id;
     guessesFilterDTO.limit = 5;
+    guessesFilterDTO.user = locations[0].user.username;
+    guessesFilterDTO.id = locations[0].id;
     guessesFilterDTO.results = 1;
 
     it('should return an array of Guess instances', () => {
@@ -296,15 +385,17 @@ describe('LocationsController', () => {
     });
   });
 
-  describe('selectPersonalGuesses', () => {
-    it('should return an array of Guess instances', () => {
-      const guessesFilterDTO: GuessesFilterDTO = new GuessesFilterDTO();
-      guessesFilterDTO.limit = 5;
-      guessesFilterDTO.results = 1;
+  describe('selectGuess', () => {
+    it('should return a Guess instance', () => {
+      expect(controller.selectGuess(guesses[0].id)).toMatchObject(new Guess());
+    });
 
-      expect(
-        controller.selectPersonalGuesses(users[0], guessesFilterDTO),
-      ).toBeInstanceOf(Array<Guess>);
+    it('should throw a NotFoundException', () => {
+      const id: string = guesses[0].id.substring(0, guesses[0].id.length - 1);
+
+      expect(() => controller.selectGuess(id)).toThrow(
+        `Guess ${id} was not found.`,
+      );
     });
   });
 
