@@ -10,6 +10,7 @@ import { InfoEditDTO } from './dto/info-edit.dto';
 import { PassChangeDTO } from './dto/pass-change.dto';
 import { join } from 'path';
 import { createReadStream } from 'fs';
+import { ReadStream } from 'typeorm/platform/PlatformTools';
 
 const moduleMocker: ModuleMocker = new ModuleMocker(global);
 
@@ -73,7 +74,9 @@ describe('AuthController', () => {
             login: jest
               .fn()
               .mockImplementation(
-                (authCredentialsDTO: AuthCredentialsDTO): { jwt: string } => {
+                (
+                  authCredentialsDTO: AuthCredentialsDTO,
+                ): { [key: string]: string } => {
                   const { username, pass } = authCredentialsDTO;
 
                   const user: User = users.find(
@@ -86,6 +89,15 @@ describe('AuthController', () => {
                   throw new ConflictException('Check your credentials.');
                 },
               ),
+            signPassResetJWT: jest
+              .fn()
+              .mockImplementation((username: string) => {
+                const user: User = users.find(
+                  (user) => user.username === username,
+                );
+
+                return { email: user.email, jwt: '' };
+              }),
             selectUsers: jest
               .fn()
               .mockImplementation((search: string): User[] => {
@@ -96,6 +108,13 @@ describe('AuthController', () => {
                 return found;
               }),
             selectInfo: jest.fn().mockImplementation((user: User) => user),
+            streamAvatar: jest
+              .fn()
+              .mockImplementation((avatar: string): StreamableFile => {
+                const stream: ReadStream = createReadStream(avatar);
+
+                return new StreamableFile(stream);
+              }),
             editInfo: jest
               .fn()
               .mockImplementation(
@@ -216,6 +235,15 @@ describe('AuthController', () => {
       expect(() => controller.login(authCredentialsDTO)).toThrow(
         'Check your credentials.',
       );
+    });
+  });
+
+  describe('signPassResetJWT', () => {
+    it('should return an obj with email and jwt props', () => {
+      expect(controller.signPassResetJWT(users[0].username)).toStrictEqual({
+        email: users[0].email,
+        jwt: '',
+      });
     });
   });
 
