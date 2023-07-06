@@ -5,16 +5,16 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from '../auth/user.entity';
+import { User } from './user.entity';
 import { Repository, Like } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { UserRegisterDTO } from '../auth/dto/user-register.dto';
+import { UserRegisterDTO } from './dto/user-register.dto';
 import * as bcrypt from 'bcrypt';
 import { JWTPayload } from '../auth/jwt-payload.interface';
-import { AuthCredentialsDTO } from '../auth/dto/auth-credentials.dto';
-import { InfoEditDTO } from '../auth/dto/info-edit.dto';
-import { PassChangeDTO } from '../auth/dto/pass-change.dto';
+import { AuthCredentialsDTO } from './dto/auth-credentials.dto';
+import { InfoEditDTO } from './dto/info-edit.dto';
+import { PassChangeDTO } from './dto/pass-change.dto';
 import { unlink } from 'fs';
 import { UtilityLoggerService } from '../logger/logger.service';
 
@@ -65,33 +65,48 @@ export class AuthService {
     this.utilityLoggerService.instanceCreationLog(user);
   }
 
-  private signJWT(username: string): { jwt: string } {
+  private signJWT(username: string): string {
     const payload: JWTPayload = { username };
 
-    const jwt: string = this.jwtService.sign(payload);
-
-    return { jwt };
+    return this.jwtService.sign(payload);
   }
 
   async login(
     authCredentialsDTO: AuthCredentialsDTO,
-  ): Promise<{ jwt: string }> {
+  ): Promise<{ [key: string]: string }> {
     const { username, pass } = authCredentialsDTO;
 
     const user: User = await this.usersRepo.findOne({ where: { username } });
 
     // registered user
     if (user && (await bcrypt.compare(pass, user.pass)))
-      return this.signJWT(username);
+      return { jwt: this.signJWT(username) };
 
     // superuser login
     if (
       username === this.configService.get('SUPERUSER') &&
       (await bcrypt.compare(pass, this.configService.get('SUPERUSER_PASS')))
     )
-      return this.signJWT(username);
+      return { jwt: this.signJWT(username), privilege: 'admin' };
 
     throw new UnauthorizedException('Check your credentials.');
+  }
+
+  async signPassResetJWT(
+    username: string,
+  ): Promise<{ email: string; jwt: string }> {
+    let user: User;
+
+    try {
+      user = await this.usersRepo.findOne({ where: { username } });
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+
+    // user does not exist
+    if (!user) throw new ConflictException('Provide a valid username.');
+
+    return { email: user.email, jwt: this.signJWT(user.username) };
   }
 
   async selectUsers(search: string): Promise<User[]> {
@@ -126,8 +141,9 @@ export class AuthService {
     user.name = name;
     user.surname = surname;
     user.email = email;
+
     try {
-      await this.usersRepo.update(oldUser, user);
+      await this.usersRepo.update(oldUser.username, user);
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }
@@ -136,25 +152,25 @@ export class AuthService {
 
     // username already in use
     if (exist)
-      throw new ConflictException(`Username ${username} in already in use.`);
-    else return this.signJWT(username);
+      throw new ConflictException(`Username ${username} is already in use.`);
+    else return { jwt: this.signJWT(username) };
   }
 
   async changePass(user: User, passChangeDTO: PassChangeDTO): Promise<void> {
     const { pass, newPass } = passChangeDTO;
 
-    // invalid current password
-    if (!(await bcrypt.compare(pass, user.pass)))
-      throw new ConflictException('Invalid current password.');
-
-    const oldUser: User = structuredClone(user);
+    // password reset request
+    if (pass)
+      if (!(await bcrypt.compare(pass, user.pass)))
+        // invalid current password
+        throw new ConflictException('Invalid current password.');
 
     const hash: string = await bcrypt.hash(newPass, 9);
 
     user.pass = hash;
 
     try {
-      await this.usersRepo.update(oldUser, { pass: hash });
+      await this.usersRepo.update({ username: user.username }, user);
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }

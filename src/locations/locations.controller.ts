@@ -12,6 +12,8 @@ import {
   Patch,
   Delete,
   InternalServerErrorException,
+  Header,
+  StreamableFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -35,6 +37,8 @@ import { Location } from './location.entity';
 import { Guess } from './guess.entity';
 import { GuessesFilterDTO } from './dto/guesses-filter.dto';
 import { LocationsService } from './locations.service';
+import { ReadStream, createReadStream } from 'fs';
+import { join } from 'path';
 
 @Controller('locations')
 @ApiTags('locations')
@@ -99,7 +103,7 @@ export class LocationsController {
     @GetUser() user: User,
     @Body() locationGuessDTO: LocationGuessDTO,
     @Param('id') id: string,
-  ): Promise<void> {
+  ): Promise<{ [key: string]: boolean | string }> {
     return this.locationsService.guessLocation(user, locationGuessDTO, id);
   }
 
@@ -116,6 +120,25 @@ export class LocationsController {
     return this.locationsService.selectLocations(locationsFilterDTO);
   }
 
+  @Get('/:id')
+  @ApiBearerAuth()
+  @ApiOkResponse({ type: Location })
+  @ApiOperation({ summary: 'Get the location according to the passed id' })
+  selectLocation(@Param('id') id: string): Promise<Location> {
+    return this.locationsService.selectLocation(id);
+  }
+
+  @Get('/:id/guessed-on')
+  @ApiBearerAuth()
+  @ApiOkResponse({ type: 'boolean' })
+  @ApiOperation({ summary: 'State whether or not user guessed the location' })
+  guessedLocation(
+    @GetUser() user: User,
+    @Param('id') id: string,
+  ): Promise<string | false> {
+    return this.locationsService.guessedLocation(user, id);
+  }
+
   @Get('/rand')
   @ApiBearerAuth()
   @ApiOkResponse({ type: Location })
@@ -126,7 +149,27 @@ export class LocationsController {
     return this.locationsService.selectRandLocation();
   }
 
-  @Get('/guesses')
+  @Get('/image/:filename')
+  @Header('Content-Type', 'image/png')
+  @Public()
+  @ApiBearerAuth()
+  @ApiOkResponse({ type: StreamableFile })
+  @ApiOperation({
+    summary: 'Stream the subject users avatar',
+  })
+  streamImage(@Param('filename') filename: string): StreamableFile {
+    try {
+      const stream: ReadStream = createReadStream(
+        join(process.cwd(), `uploads/${filename}`),
+      );
+
+      return new StreamableFile(stream);
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  @Get('/guesses/all')
   @ApiOkResponse({ type: [Guess] })
   @ApiOperation({
     summary: 'Select limited amount of geolocation guesses records',
@@ -135,18 +178,14 @@ export class LocationsController {
     return this.locationsService.selectGuesses(guessesFilterDTO);
   }
 
-  @Get('/guesses/me')
+  @Get('/guess/:id')
   @ApiBearerAuth()
   @ApiOkResponse({ type: [Guess] })
   @ApiOperation({
-    summary:
-      'Select personal location guesses according to the passed results criteria',
+    summary: 'Select guess record according to the passed location id',
   })
-  selectPersonalGuesses(
-    @GetUser() user: User,
-    @Query() guessesFilterDTO: GuessesFilterDTO,
-  ): Promise<Guess[]> {
-    return this.locationsService.selectPersonalGuesses(user, guessesFilterDTO);
+  selectGuess(@Param('id') id: string): Promise<Guess> {
+    return this.locationsService.selectGuess(id);
   }
 
   @Patch('/:id')

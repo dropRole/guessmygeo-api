@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Location } from './location.entity';
-import { Repository, SelectQueryBuilder, FindOptionsOrderValue } from 'typeorm';
+import { Repository, SelectQueryBuilder, InsertResult } from 'typeorm';
 import { Guess } from './guess.entity';
 import { LocationCreateDTO } from './dto/location-create.dto';
 import { User } from '../auth/user.entity';
@@ -60,7 +60,7 @@ export class LocationsService {
     user: User,
     locationGuessDTO: LocationGuessDTO,
     id: string,
-  ): Promise<void> {
+  ): Promise<{ [key: string]: boolean | string }> {
     const { result } = locationGuessDTO;
 
     let location: Location;
@@ -77,13 +77,18 @@ export class LocationsService {
 
     const guess: Guess = this.guessesRepo.create({ result, location, user });
 
+    let idGuesses: string;
     try {
-      await this.guessesRepo.insert(guess);
+      const result: InsertResult = await this.guessesRepo.insert(guess);
+
+      idGuesses = result.identifiers[0].id;
     } catch (error) {
-      throw new InternalServerErrorException(error.message);
+      return { message: error.message };
     }
 
     this.utilityLoggerService.instanceCreationLog(guess);
+
+    return { id: idGuesses };
   }
 
   async selectLocations(
@@ -107,6 +112,37 @@ export class LocationsService {
     }
   }
 
+  async selectLocation(id: string): Promise<Location> {
+    let location: Location;
+    try {
+      location = await this.locationsRepo.findOne({ where: { id } });
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+
+    // was not found
+    if (!location)
+      throw new NotFoundException(`Location with the id ${id} was not found.`);
+
+    return location;
+  }
+
+  async guessedLocation(user: User, id: string): Promise<string | false> {
+    let guess: Guess;
+    try {
+      guess = await this.guessesRepo.findOne({
+        where: { location: { id }, user },
+      });
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+
+    // user guessed location
+    if (guess) return guess.id;
+
+    return false;
+  }
+
   async selectRandLocation(): Promise<Location> {
     const query: SelectQueryBuilder<Location> =
       this.locationsRepo.createQueryBuilder('location');
@@ -125,55 +161,47 @@ export class LocationsService {
   }
 
   async selectGuesses(guessesFilterDTO: GuessesFilterDTO): Promise<Guess[]> {
-    const { id } = guessesFilterDTO;
+    const { limit, user, id, results } = guessesFilterDTO;
 
-    let location: Location;
+    const query: SelectQueryBuilder<Guess> =
+      this.guessesRepo.createQueryBuilder('guess');
+    query.innerJoinAndSelect('guess.location', 'location');
+    query.innerJoinAndSelect('guess.user', 'guesser');
+
+    // particular location guesses
+    if (id) query.where('guess.location = :location', { location: id });
+
+    // personal guesses
+    if (user) query.where('guess.guesser = :guesser', { guesser: user });
+
+    query.orderBy('guess.result', results ? 'ASC' : 'DESC');
+
+    query.take(limit);
+
+    let guesses: Guess[];
     try {
-      location = await this.locationsRepo.findOne({ where: { id } });
+      guesses = await query.getMany();
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }
 
-    // not found
-    if (!location) throw new NotFoundException(`Location ${id} was not found.`);
+    this.utilityLoggerService.instanceSelectionLog('Guess', limit);
 
-    const { limit } = guessesFilterDTO;
-    try {
-      const guesses: Guess[] = await this.guessesRepo.find({
-        where: { location: { id } },
-        order: { result: 'ASC' },
-        take: limit,
-      });
-
-      this.utilityLoggerService.instanceSelectionLog('Guess', guesses.length);
-
-      return guesses;
-    } catch (error) {
-      throw new InternalServerErrorException(error.message);
-    }
+    return guesses;
   }
 
-  async selectPersonalGuesses(
-    user: User,
-    guessesFilterDTO: GuessesFilterDTO,
-  ): Promise<Guess[]> {
-    const { results, limit } = guessesFilterDTO;
-
-    const resultOrder: FindOptionsOrderValue = results == 1 ? 'ASC' : 'DESC';
-
+  async selectGuess(id: string): Promise<Guess> {
+    let guess: Guess;
     try {
-      const guesses: Guess[] = await this.guessesRepo.find({
-        where: { user },
-        take: limit,
-        order: { result: resultOrder },
-      });
-
-      this.utilityLoggerService.instanceSelectionLog('Guess', limit);
-
-      return guesses;
+      guess = await this.guessesRepo.findOne({ where: { id } });
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }
+
+    // guess record was not found
+    if (!guess) throw new NotFoundException(`The guess ${id} was not found.`);
+
+    return guess;
   }
 
   async editLocation(
@@ -251,8 +279,9 @@ export class LocationsService {
       );
 
     const guesses: Guess[] = await this.selectGuesses({
-      id,
       limit: 1,
+      id,
+      user: undefined,
       results: 1,
     });
 

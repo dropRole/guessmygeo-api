@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsNumberString,
   IsUUID,
+  IsString,
 } from 'class-validator';
 
 export class GuessesFilterDTO {
@@ -17,7 +18,15 @@ export class GuessesFilterDTO {
 
   @ApiPropertyOptional({
     type: 'string',
-    description: 'identification of the guess record',
+    description: 'Location guesser',
+  })
+  @IsOptional()
+  @IsString()
+  user: string;
+
+  @ApiPropertyOptional({
+    type: 'string',
+    description: 'identification of the location record',
   })
   @IsOptional()
   @IsUUID()
