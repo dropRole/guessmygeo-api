@@ -135,7 +135,7 @@ export class LocationsController {
   guessedLocation(
     @GetUser() user: User,
     @Param('id') id: string,
-  ): Promise<string | false> {
+  ): Promise<Guess | false> {
     return this.locationsService.guessedLocation(user, id);
   }
 
