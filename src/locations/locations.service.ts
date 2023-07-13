@@ -127,7 +127,7 @@ export class LocationsService {
     return location;
   }
 
-  async guessedLocation(user: User, id: string): Promise<string | false> {
+  async guessedLocation(user: User, id: string): Promise<Guess | false> {
     let guess: Guess;
     try {
       guess = await this.guessesRepo.findOne({
@@ -138,7 +138,7 @@ export class LocationsService {
     }
 
     // user guessed location
-    if (guess) return guess.id;
+    if (guess) return guess;
 
     return false;
   }
